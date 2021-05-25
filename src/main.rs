@@ -255,4 +255,40 @@ fn main() {
 
     // The idiom let _ = ... is used to silence this warning:
     let _ = writeln!(stderr(), "error: {}", err); // ok, ignore result
+
+
+
+    // Handling Errors in main()
+
+    // In most places where a Result is produced, letting the error bubble up to the caller is the right behaviour. This is why ? is a single character in Rust, it's used on many line of code in a row.
+
+    // However, if we propagate and error long enough, eventually it reaches main(), and that's where this approach ahs to stop. main() can't use ? because its return type is not Result.
+    fn main() {
+        calculate_tides()?; // error: can't pass the buck any further
+    }
+
+    // The simplest way to handle errors in main is to use .expect().
+    fn main() {
+        calculate_tides().expect("error"); // the buck stops here
+    }
+
+    // If calculate_tides() returns an error result, the .expect() method panics. Panicking in the main thread prints an error message, then exits with a nonzero exit code, which is roughly the desired behaviour. The error message is a little intimidating, though:
+    // tidecalc --planet mercury
+    // thread 'main' panicked at 'error: "moon not found"', buildslaverust-buildbot/s
+    // lave/nightly-dist-rustc-linux/build/src/libcore/result.rs:837
+    // note: Run with `RUST_BACKTRACE=1` for a backtrace.
+
+    // The error message is lost in the noise. Also, rust backtrace is bad advice in this particular case. It pays to print the error message ourselves:
+    fn main() {
+        if let Err(err) = calculate_tides() {
+            print_error(&err);
+            std::process::exit(1);
+        }
+    }
+
+    // The above code uses an if let expression to print the error message only if the call to calculate_tides() returns an error result. More details on if let expressions in chapt 10. print_error function is under "Printing Error".
+
+    // Now the output is nice and tidy:
+    // $ tidecalc --planet mercury
+    // error: moon not found
 }
