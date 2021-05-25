@@ -291,4 +291,49 @@ fn main() {
     // Now the output is nice and tidy:
     // $ tidecalc --planet mercury
     // error: moon not found
+
+
+
+    // Declaring a Custom Error Type
+
+    // Suppose we are writing a new JSON parser, and we want it to have its own error type. (We haven’t covered user-defined types yet; that’s coming up in a few chapters.)
+
+    // Approximately the min code we could write is:
+
+    // json/sec/error.rs
+
+    #[derive(Debug, Clone)]
+    pub struct JsonError {
+        pub message: String,
+        pub line: usize,
+        pub column: usize,
+    }
+
+    // This struct will be called json::error::JsonError, and when we want to raise an error of this type, we can write:
+
+    return Err(JsonError {
+        message: "expected 'j' at end of array".to_string(),
+        line: current_line,
+        column: current_column
+    });
+
+    // This will work fine. However if we want our error type to work like the standard error types, as our library's users will expect, then we have a bit more work to do:
+    use std;
+    use std::fmt;
+
+    // Errors should be printable.
+    impl fmt::Display for JsonError {
+        fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+            write!(f, "{} ({}:{})", self.message, self.line, self.column)
+        }
+    }
+
+    // Errors should implement the std::error:Error trait
+    impl std::error::Error for JsonError {
+        fn description(&self) -> &str {
+            &self.message
+        }
+    }
+
+    // The meaning of impl, self, and the rest will be covered in a few chapters.
 }
