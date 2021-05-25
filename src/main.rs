@@ -245,4 +245,14 @@ fn main() {
     }
 
     // Here, the .elapsed() method can fail only if the system time is earlier than when the file was created. This can happen if the file was created recently, and the system clock was adjusted backward while our program was running. Depending on how this code is used, it's a reasonable judgment call to panic in that case, rather than handle the error or propagate it to the caller.
+
+
+
+    // Ignoring Errors
+
+    // Occasionally we just want to ignore an error altogether. For example, in our print_error() function, we had to handle the unlikely situation where printing the error triggers another error. This could happen, for example if stderr is piped to another process, and that process is killed. As there's not much we can do about this kind of error, we just want to ignore it. But the Rust compiler warns about unused Result values:
+    writeln!(stderr(), "error: {}", err); // warning: unused result
+
+    // The idiom let _ = ... is used to silence this warning:
+    let _ = writeln!(stderr(), "error: {}", err); // ok, ignore result
 }
