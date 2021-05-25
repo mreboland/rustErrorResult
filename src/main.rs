@@ -71,4 +71,40 @@ fn main() {
 
     // This defines a public type std::io::Result<T>. It's an alias for Result<T, E> but hardcoding std::io::Error as the error type. In practical terms, this means that if we write use std::io; then Rust will understand io::Result<String> as shorthand for Result<String, io::Error>.
 
+    
+
+    // Printing Errors
+
+    // Sometimes the only way to handle an error is by dumping it to the terminal and moving on. We've seen one way already:
+    println!("error querying the weather: {}", err);
+
+    // The standard library defines several error types with boring names. std::io::Error, std::fmt::Error, std::str::Utf8Error, and so on. All of them implement a common interface, the std::error::Error trait, which means they share the following features:
+    // 1. They're all printable using println!(). Printing an error with the {} format specifier typically displays only a brief error message. Alternatively, we can print with the {:?} format specifier, to get a Debug view of the error. This is less user-friendly, but includes extra technical info.
+    // result of `println!("error: {:?}", err);`
+    // error: failed to lookup address information: No address associated with hostname
+
+    // result of `println!("error: {:?}", err);`
+    // error: Error {repr: Custom(Custom { kind: Other, error: StringError("failed to lookup address information: No address associated with hostname") }) }
+    // 2. err.description() returns an error message as a &str
+    // 3. err.cause() returns an Option<&Error>: the underlying error, if any, that triggered err.
+    // For example, a networking error might cause a banking transaction to fail, which could in turn cause our boat to be repossessed. If err.description() is "boat was repossessed", then err.cause() might return an error about the failed transaction; its .description() might be "failed to transfer $300 to United Yacht Supply", and its .cause() might be an io::Error with details about the specific network outage that caused all the fuss. That third error is the root cause, so its .cause() method would return None.
+    // Since the standard library only includes rather low-level features, this is usually None for standard library errors.
+
+    // Printing an error value does not also print out its cause. If we want to be sure to print all the available info, use:
+    use std::error::Error;
+    use std::io::{Write, stderr};
+
+    /// Dump an error msg to `stderr`.
+    ///
+    /// If another error happens while building the error msg or
+    /// writing to `stderr`, it is ignored.
+    fn print_error(mut err: &Error) {
+        let _ = writeln!(stderr(), "error: {}", err);
+        while let Some(cause) = err.cause() {
+            let _ = writeln!(stderr(), "caused by: {}", cause);
+            err = cause;
+        }
+    }
+
+    // The standard library's error types do not include a stack trace, but the error-chain crate makes it easy to define our own custom error type that supports grabbing a stack trace when it's created. It uses the backtrace crate to capture the stack.
 }
