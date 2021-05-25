@@ -205,4 +205,44 @@ fn main() {
     }
 
     // Many languages have built-in syntax to do this, but is rarely needed. Rust has a method for it instead.
+
+
+
+    // Dealing with Errors that "Can't Happen"
+
+    // Sometimes we just know that an error can't happen. For example, suppose we're writing code to parse a config file, and at one point we find that the next thing in the file is a string of digits:
+    if next_char.is_digit(10) {
+        let start = current_index;
+        current_index = skip_digits(&line, current_index);
+        let digits = &line[start.current_index];
+        ...        
+    }
+
+    // We want to convert this string of digits to an actual number. There's a standard method that does this:
+    let num = digits.parse::<u64>();
+
+    // Now the problem: the str.parse::<u64>() method doesn't return a u64. It returns a Result. It can fail, because some strings aren't numeric.
+    "bleen".parse::<u64>() // ParseIntError: invalid digit
+
+    // But we happen to know that in this case, digits consists entirely of digits. What should we do?
+
+    // If the code we're writing already returns a GenResult, we can tack on a ? and forget about it. Otherwise, we face the irritating prospect of having to write error-handling code for an error that can't happen. The best choice then would be to use .unwrap(), a Result method mentioned earlier.
+    let num = digits.parse::<u64>().unwrap();
+
+    // This is just like ? except that if we're wrong about this error, if it can happen, then in that case we would panic.
+
+    // In fact, we are wrong about this particular case. If the input contains a long enough string of digits, the number will be too big to fit in a u64.
+    "99999999999999999999999999999999".parse::<u64>() // overflow error
+
+    // Using .unwrap() in this case would therefore be a bug. Bogus input shouldn't cause a panic.
+
+    // However there are situations that do come up where a Result value truly can't be an error. For example, in chapt 18, we'll see that the Write trait defines a common set of methods (.write() and others) for text and binary output. All of those methods return io::Results, but if we happen to be writing to a Vec<u8>, they can't fail. In such cases, it's acceptable to use .unwrap() or .expect(message) to dispense with the Results.
+
+    // These methods are also useful when an error would indicate a condition so severe or bizarre that panic is exactly how you want to handle it.
+    fn print_file_age(filename: &Path, last_modified: SystemTime) {
+        let age = last_modified.elapsed().expect("system clock drift");
+        ...
+    }
+
+    // Here, the .elapsed() method can fail only if the system time is earlier than when the file was created. This can happen if the file was created recently, and the system clock was adjusted backward while our program was running. Depending on how this code is used, it's a reasonable judgment call to panic in that case, rather than handle the error or propagate it to the caller.
 }
