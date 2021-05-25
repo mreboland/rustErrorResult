@@ -336,4 +336,17 @@ fn main() {
     }
 
     // The meaning of impl, self, and the rest will be covered in a few chapters.
+
+
+
+    // Why Results?
+
+    // The key points of why Rust is choosing Results over exceptions are:
+    // 1. Rust requires the programmer to make some sort of decision, and record it in the code, at every point where an error could occur. This is good because otherwise, it's easy to get error handling wrong through neglect
+    // 2. The most common decision is to allows errors to propagate, and that's written with a single character, '?'. Thus error plumbing does not clutter up our code the way it does in C and Go. Yet it's still visible. We can look at a chunk of code and see at a glance all places where errors are propagated.
+    // 3. Since the possibility of errors is part of every function's return type, it's clear which functions can fail and which can't. If we change a function to be fallible, we're changing its return type, so the compiler will make us update that function's downstream users.
+    // 4. Rust check that Result values ar used, so we can't accidentally let an error pass silently (a common mistake in C).
+    // 5. Since Result is a data type like any other, it's easy to store success and error results in the same collection. This makes it easy to model partial success. For example, if we're writing a program that loads millions of records from a text file, and we need a way to cope with the likely outcome that most will succeed, but some will fail, we can represent that situation in memory using a vector of Results.
+
+    // The cost is that we'll find ourselves thinking about and engineering error handling more in Rust than other languages. As in many other areas, Rust's take on error handling is wound just a little tighter than what we're used to. For systems programming, it's worth it.
 }
