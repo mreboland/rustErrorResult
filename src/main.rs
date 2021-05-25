@@ -107,4 +107,49 @@ fn main() {
     }
 
     // The standard library's error types do not include a stack trace, but the error-chain crate makes it easy to define our own custom error type that supports grabbing a stack trace when it's created. It uses the backtrace crate to capture the stack.
+
+
+
+    // Propagating Errors
+
+    // For error handling, it's too much code to use a 10-line match statement every place where something could go wrong.
+    // Instead, if an error occurs, we usually want to let our caller deal with it. We want errors to propagate up the call stack.
+
+    // Rust has a ? operator that does this. We can add a ? to any expression that produces a Result, such as the result of a function call:
+    let weather = get_weather(hometown)?;
+
+    // The behaviour of ? depends on whether this function returns a success result or an error result:
+    // 1. On success, it unwraps the Result to get the success value inside. The type of weather here is not Result<WeatherReport, io::Error> but simply WeatherReport.
+    // 2. On error, it immediately returns from the enclosing function, passing the error result up the call chain. To ensure that this works, ? can only be used in functions that have a Result return type.
+
+    // There's nothing magical about the ? operator. We can express the same thing using a match expression, although it's much wordier:
+    let weather = match get_weather(hometown) {
+        Ok(success_value) => success_value,
+        Err(err) => return Err(err)
+    };
+
+    // The only differences between this and the ? operator are some fine points involving types and conversions, covered later.
+
+    // In older code, we may see the try!() macro, which was the usual way to propagate errors until the ?operator was introduced in Rust 1.13.
+    let weather = try!(get_weather(hometown));
+
+    // The macro expands to a match expression, like the on above.
+
+    // Errors in a program can be pervasive, particularly with code that interfaces with the OS. The ? operator sometimes shows up on almost every line of a function:
+    use std::fs;
+    use std::io;
+    use std::path::Path;
+
+    fn move_all(srd: &Path, dst: &Path) -> io::Result<()> {
+        for entry_result in src.read_dir()? { // opening dir could fail
+            let entry = entry_result?; // reading dir could fail
+            let dst_file = dst.join(entry.file_name());
+            fs::rename(entry.path(), dst_file)?; // renaming could fail
+        }
+        Ok(()) // phew!
+    }
+
+
+
+    
 }
