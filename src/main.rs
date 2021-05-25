@@ -151,5 +151,58 @@ fn main() {
 
 
 
-    
+    // Working with Multiple Error Types
+
+    // Often, more than one thing could go wrong. Suppose we are simply reading numbers from a text file.
+    use std::io::{self, BufRead};
+
+    /// Read integers from a text file.
+    /// The file should have on number on each line.
+    fn read_numbers(file: &mut BufRead) -> Result<Vec<i64>, io::Error> {
+        let mut numbers = vec![];
+        for line_result in file.lines() {
+            let line = line_result?; // reading lines can fail
+            numbers.push(line.parse()?); // parsing integers can fail
+        }
+        Ok(numbers)
+    }
+
+    // Rust gives us a compiler error:
+    // numbers.push(line.parse()?); // parsing integers can fail
+    // the trait `std::convert::From<std::num...
+
+    // The terms in the error will be covered in chapter 11 which covers traits. For now, Rust is complaining that it can't convert a std::num::ParseIntError value to the type std::io::Error.
+
+    // The problem here is that reading a line from a file and parsing an integer produce two different potential error types. The type of line_result is Result<String, std::io::Error>, The type of line.parse() is Result<i64, std::num::ParseIntError>. The return type of our read_numbers() function only accommodates io::Errors. Rust tries to cope with the ParseIntError by converting it to a io::Error, but there's no such conversion, so we get a type error.
+
+    // Another approach is to use what's built into Rust. All of the standard library error types can be converted to the type Box<std::error::Error>, which represents "any error". So an easy way to handle multiple error types is to define these type aliases:
+    type GenError = Box<std::error::Error>;
+    type GenResult<T> = Result<T, GenError>;
+
+    // Then, change the return type of read_numbers() to GenResult<Vec<i64>>. With this change, the function compiles. The ? operator automatically converts either type of error into a GenError as needed.
+
+    // Incidentally, the ? operator does this automatic conversion using a standard method that we can use ourself. To convert any error to the GenError type, call GenError::from():
+    let io_error = io::Error::new( // make our own io::Error
+        io::ErrorKind::Other, "timed out");
+    return Err(GenError::from(io_error)); // manually convert to GenError
+
+    // From trait and its form() method is covered in chapt 13.
+
+    // The downside of the GenError approach is that the return type no longer communicates precisely what kind of errors the caller can expect. The caller must be ready for anything.
+
+    // If we're calling a function that returns a GenResult, and we want to handle on particular kind of error, but let all others propagate out, use the generic method error.downcast_ref::<ErrorType>(). It borrows a ref to the error, if it happens to be the particular type of error we're looking for:
+    loop {
+        match compile_project() {
+            OK(()) => return Ok(()),
+            Err(err) => {
+                if let Some(mse) = err.downcast_ref::<MissingSemicolonError>() {
+                    insert_semicolon_in_source_code(mse.file(), mse.line())?;
+                    continue; // try again!
+                }
+                return Err(err);
+            }
+        }
+    }
+
+    // Many languages have built-in syntax to do this, but is rarely needed. Rust has a method for it instead.
 }
